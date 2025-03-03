@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Issue Tracker</title>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .issue { border: 2px solid red; padding: 10px; margin: 10px 0; }
+        .assigned { border-color: orange; }
+        .resolved { border-color: green; }
+        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Technical Issue Tracker</h2>
+        <h3>Log an Issue</h3>
+        <input type="text" id="title" placeholder="Issue Title"><br>
+        <textarea id="description" placeholder="Issue Description"></textarea><br>
+        <select id="priority">
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+        </select>
+        <button onclick="logIssue()">Log Issue</button>
+        
+        <h3>Issues</h3>
+        <div id="issues"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+  apiKey: "AIzaSyBHIVgLTVvkKiyn6BARvTeqXDryMuq0PGE",
+  authDomain: "cyberfusion-a8e56.firebaseapp.com",
+  projectId: "cyberfusion-a8e56",
+  storageBucket: "cyberfusion-a8e56.firebasestorage.app",
+  messagingSenderId: "327505824713",
+  appId: "1:327505824713:web:1751e3d5746b90d0417618",
+        };
+        
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function loadIssues() {
+            const issuesDiv = document.getElementById('issues');
+            issuesDiv.innerHTML = '';
+
+            db.collection("issues").onSnapshot(snapshot => {
+                issuesDiv.innerHTML = ''; 
+                snapshot.forEach(doc => {
+                    let issue = doc.data();
+                    let issueDiv = document.createElement('div');
+                    issueDiv.className = `issue ${issue.status}`;
+                    issueDiv.innerHTML = `
+                        <h4>${issue.title} (${issue.priority})</h4>
+                        <p>${issue.description}</p>
+                        <p>Status: ${issue.status}</p>
+                        ${issue.assignedTo ? `<p>Assigned to: ${issue.assignedTo}</p>` : ''}
+                        <button onclick="assignIssue('${doc.id}')">Assign</button>
+                        <button onclick="resolveIssue('${doc.id}')">Resolve</button>
+                    `;
+                    issuesDiv.appendChild(issueDiv);
+                });
+            });
+        }
+
+        function logIssue() {
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const priority = document.getElementById('priority').value;
+            
+            if (!title || !description) {
+                alert('Please enter issue details.');
+                return;
+            }
+
+            db.collection("issues").add({
+                title: title,
+                description: description,
+                priority: priority,
+                status: "unassigned",
+                assignedTo: ""
+            }).then(() => {
+                alert("Issue logged successfully!");
+                loadIssues();
+            }).catch(error => console.error("Error adding issue:", error));
+        }
+
+        function assignIssue(issueId) {
+            const username = prompt("Enter your name to assign this issue:");
+            if (!username) return;
+
+            db.collection("issues").doc(issueId).update({
+                status: "assigned",
+                assignedTo: username
+            });
+        }
+
+        function resolveIssue(issueId) {
+            db.collection("issues").doc(issueId).update({
+                status: "resolved"
+            });
+        }
+
+        window.onload = loadIssues;
+    </script>
+</body>
+</html>
